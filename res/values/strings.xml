@@ -159,5 +159,7 @@
     <string name="maintainer_name">Whom To Blame: <xliff:g id="maintainer" example="Subins Mani">%1$s</xliff:g></string>
 
     <string name="menu_show_changelog">Show changelog</string>
-
+    <string name="dialog_permissions_title">Permissions</string>
+    <string name="dialog_permissions_dismiss">Dismiss</string>
+    <string name="dialog_permissions_ask">Ask again</string>
 </resources>

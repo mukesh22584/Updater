@@ -15,18 +15,35 @@
  */
 package org.lineageos.updater;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemProperties;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
+import com.google.android.material.snackbar.Snackbar;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.appcompat.widget.Toolbar;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -86,7 +103,8 @@ public class UpdatesActivity extends UpdatesListActivity {
     private View mUpdateButton;
 
     private static final int READ_REQUEST_CODE = 42;
-
+    private static final int PERMISSION_REQUEST_CODE = 200;   
+ 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -459,6 +477,9 @@ public class UpdatesActivity extends UpdatesListActivity {
     }
 
     private void performFileSearch() {
+        if (checkStoragePermissions()) {
+            return;
+        }
         Intent chooseFile;
         Intent intent;
         chooseFile = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -467,6 +488,52 @@ public class UpdatesActivity extends UpdatesListActivity {
         startActivityForResult(intent, READ_REQUEST_CODE);
     }
 
+    private boolean hasStoragePermission() {
+        int result = checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        return result == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean checkStoragePermissions() {
+        if (hasStoragePermission()) {
+            return false;
+        }
+
+        final String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE};
+        requestPermissions(perms, PERMISSION_REQUEST_CODE);
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_CODE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                } else {
+                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            showMessageOKCancel(getString(R.string.dialog_permissions_title),
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                checkStoragePermissions();
+                                            }
+                                        }
+                                    });
+                        }
+                }
+                break;
+        }
+    }
+
+    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
+        new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton(getString(R.string.dialog_permissions_ask), okListener)
+                .setNegativeButton(getString(R.string.dialog_permissions_dismiss), null)
+                .create()
+                .show();
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent resultData) {
         if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
